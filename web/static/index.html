@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Diff - Modern CSV Comparison</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Preconnect and Google Fonts Inter for shadcn look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+            <path d="M6 9v12"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">CSV Diff</span>
+          <span class="badge badge-outline">Production v1.1</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- New comparison button -->
+        <button id="newComparisonBtn" class="btn btn-outline btn-sm" style="display: none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>New Comparison</span>
+        </button>
+
+        <!-- Theme Toggle Button -->
+        <button id="themeToggleBtn" class="btn btn-ghost btn-icon" title="Toggle theme" aria-label="Toggle theme">
+          <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+          <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <!-- Step 1 & 2: Upload Files -->
+    <section id="uploadSection" class="section">
+      <div class="section-intro">
+        <h1 class="section-title">Compare CSV Files</h1>
+        <p class="section-desc">Select two local CSV files to detect differences at the row, cell, and character level.</p>
+      </div>
+
+      <div class="card card-upload">
+        <div class="file-pickers-grid">
+          <!-- Original File Card / Dropzone -->
+          <div class="dropzone-card" id="originalDropzone" tabindex="0" role="button" aria-label="Select Original CSV file">
+            <div class="dropzone-inner">
+              <div class="dropzone-icon-circle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                </svg>
+              </div>
+              <div class="dropzone-texts">
+                <span class="dropzone-label">Original CSV</span>
+                <p class="dropzone-sub">Drag & drop or <span class="link-styled">browse</span></p>
+                <span class="dropzone-formats">CSV, TXT up to 50MB</span>
+              </div>
+              <input type="file" id="originalFileInput" accept=".csv,text/csv,text/plain" class="file-input-hidden">
+              <div class="file-pill" id="originalFileInfo" style="display: none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg>
+                <span class="file-name" id="originalFileName"></span>
+                <span class="file-size" id="originalFileSize"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modified File Card / Dropzone -->
+          <div class="dropzone-card" id="modifiedDropzone" tabindex="0" role="button" aria-label="Select Modified CSV file">
+            <div class="dropzone-inner">
+              <div class="dropzone-icon-circle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+              </div>
+              <div class="dropzone-texts">
+                <span class="dropzone-label">Modified CSV</span>
+                <p class="dropzone-sub">Drag & drop or <span class="link-styled">browse</span></p>
+                <span class="dropzone-formats">CSV, TXT up to 50MB</span>
+              </div>
+              <input type="file" id="modifiedFileInput" accept=".csv,text/csv,text/plain" class="file-input-hidden">
+              <div class="file-pill" id="modifiedFileInfo" style="display: none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg>
+                <span class="file-name" id="modifiedFileName"></span>
+                <span class="file-size" id="modifiedFileSize"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer-options">
+          <label class="custom-checkbox">
+            <input type="checkbox" id="hasHeaderCheckbox" checked>
+            <span class="checkbox-box"></span>
+            <span class="checkbox-label">First row contains column headers</span>
+          </label>
+
+          <button id="inspectFilesBtn" class="btn btn-primary" disabled>
+            <span>Continue to Options</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div id="uploadError" class="callout callout-destructive" style="display: none;" role="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span class="callout-text" id="uploadErrorMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Comparison Settings -->
+    <section id="configSection" class="section" style="display: none;">
+      <div class="section-intro">
+        <h1 class="section-title">Configure Comparison</h1>
+        <p class="section-desc">Choose matching mode and select which columns participate in value comparison.</p>
+      </div>
+
+      <div class="card card-config">
+        <div class="config-grid">
+          <!-- Comparison Mode Card -->
+          <div class="config-pane">
+            <div class="pane-title-group">
+              <span class="pane-step">1</span>
+              <div>
+                <h3 class="pane-title">Comparison Mode</h3>
+                <p class="pane-desc">Choose how corresponding records are identified.</p>
+              </div>
+            </div>
+
+            <div class="segmented-control">
+              <label class="segmented-option">
+                <input type="radio" name="comparisonMode" value="positional" checked>
+                <span class="custom-radio-circle"></span>
+                <div class="segmented-content">
+                  <div class="segmented-header">
+                    <strong>Row Position</strong>
+                    <span class="badge badge-secondary badge-xs">Default</span>
+                  </div>
+                  <span class="segmented-sub">Matches Row 1 with Row 1, Row 2 with Row 2 in CSV order.</span>
+                </div>
+              </label>
+
+              <label class="segmented-option">
+                <input type="radio" name="comparisonMode" value="primary_key">
+                <span class="custom-radio-circle"></span>
+                <div class="segmented-content">
+                  <div class="segmented-header">
+                    <strong>Primary Key</strong>
+                  </div>
+                  <span class="segmented-sub">Matches records by a unique column identifier even if rows are reordered.</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Primary Key Column Selector -->
+            <div id="pkSelectorWrapper" class="sub-config-box" style="display: none;">
+              <label for="pkColumnSelect" class="form-label">Primary Key Column</label>
+              <div class="select-wrapper">
+                <select id="pkColumnSelect" class="form-select"></select>
+              </div>
+              <p class="form-hint">
+                Must be unique and non-empty in both files. Excluding the key from value comparison does not disable its matching role.
+              </p>
+            </div>
+          </div>
+
+          <!-- Column Selection Card -->
+          <div class="config-pane">
+            <div class="pane-title-group">
+              <span class="pane-step">2</span>
+              <div>
+                <h3 class="pane-title">Column Filtering</h3>
+                <p class="pane-desc">Control which columns participate in difference detection.</p>
+              </div>
+            </div>
+
+            <div class="tabs-list">
+              <button type="button" class="tab-trigger active" data-col-mode="all">Compare All</button>
+              <button type="button" class="tab-trigger" data-col-mode="include">Include Only</button>
+              <button type="button" class="tab-trigger" data-col-mode="exclude">Exclude Selected</button>
+            </div>
+            <!-- Hidden radio group for accessibility & JS compatibility -->
+            <div style="display:none;">
+              <input type="radio" name="columnFilterMode" value="all" checked id="radioFilterAll">
+              <input type="radio" name="columnFilterMode" value="include" id="radioFilterInclude">
+              <input type="radio" name="columnFilterMode" value="exclude" id="radioFilterExclude">
+            </div>
+
+            <div id="columnFilterWrapper" class="sub-config-box" style="display: none;">
+              <div class="column-search-toolbar">
+                <div class="input-icon-group">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                  <input type="text" id="columnSearchInput" class="form-input form-input-sm" placeholder="Filter columns...">
+                </div>
+                <div class="btn-group-xs">
+                  <button type="button" id="selectAllColsBtn" class="btn btn-ghost btn-xs">All</button>
+                  <button type="button" id="deselectAllColsBtn" class="btn btn-ghost btn-xs">None</button>
+                  <button type="button" id="resetColsBtn" class="btn btn-ghost btn-xs">Reset</button>
+                </div>
+              </div>
+
+              <div id="columnsCheckboxList" class="columns-scroll-area"></div>
+              <p id="columnFilterInfo" class="form-hint"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer-actions">
+          <button id="startCompareBtn" class="btn btn-primary btn-lg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Compare Files</span>
+          </button>
+          <button id="cancelCompareBtn" class="btn btn-destructive" style="display: none;">
+            Cancel
+          </button>
+        </div>
+
+        <div id="configError" class="callout callout-destructive" style="display: none;" role="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span class="callout-text" id="configErrorMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-backdrop" style="display: none;">
+      <div class="loading-card">
+        <div class="spinner-ring"></div>
+        <div id="loadingText" class="loading-message">Comparing CSV files...</div>
+        <div id="loadingBatchSub" class="loading-sub" style="display: none;">Loading batch...</div>
+      </div>
+    </div>
+
+    <!-- Step 4: Results Section -->
+    <section id="resultsSection" class="section results-container" style="display: none;">
+      <!-- Metrics Overview -->
+      <div class="metrics-grid">
+        <div class="metric-card metric-primary">
+          <div class="metric-header">
+            <span class="metric-title">Differing Rows</span>
+            <span class="metric-icon">⚡</span>
+          </div>
+          <div class="metric-value" id="statTotalDiffs">0</div>
+          <div class="metric-footer">Total records with differences</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Modified</span>
+            <span class="status-indicator mod"></span>
+          </div>
+          <div class="metric-value text-rose" id="statModified">0</div>
+          <div class="metric-footer">Paired rows with changed values</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Added</span>
+            <span class="status-indicator add"></span>
+          </div>
+          <div class="metric-value text-emerald" id="statAdded">0</div>
+          <div class="metric-footer">New rows in modified file</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Removed</span>
+            <span class="status-indicator rem"></span>
+          </div>
+          <div class="metric-value text-rose-dark" id="statRemoved">0</div>
+          <div class="metric-footer">Deleted from original file</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Changed Cells</span>
+            <span class="metric-icon">📝</span>
+          </div>
+          <div class="metric-value" id="statChangedCells">0</div>
+          <div class="metric-footer">Individual modified cells</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Unchanged</span>
+            <span class="metric-icon">✓</span>
+          </div>
+          <div class="metric-value text-muted" id="statUnchanged">0</div>
+          <div class="metric-footer">Identical rows (hidden)</div>
+        </div>
+      </div>
+
+      <!-- Controls Toolbar -->
+      <div class="toolbar-card">
+        <div class="toolbar-left">
+          <!-- Filter Tabs -->
+          <div class="filter-segmented">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="modified">Modified</button>
+            <button class="filter-tab" data-filter="added">Added</button>
+            <button class="filter-tab" data-filter="removed">Removed</button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            <input type="text" id="searchDiffsInput" class="form-input form-input-sm search-input" placeholder="Search cell values...">
+            <button id="clearSearchBtn" class="clear-btn" style="display: none;">✕</button>
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- Difference Navigation Controls -->
+          <div class="nav-cluster">
+            <button id="prevDiffBtn" class="btn btn-outline btn-sm" title="Previous difference (Shortcut: K or Alt+Up)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"></path></svg>
+              <span>Prev</span>
+            </button>
+            <span id="diffPositionIndicator" class="nav-counter">- / -</span>
+            <button id="nextDiffBtn" class="btn btn-outline btn-sm" title="Next difference (Shortcut: J or Alt+Down)">
+              <span>Next</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+          </div>
+
+          <!-- Independent Scroll / Sync Scroll Toggle (Unchecked = Independent) -->
+          <label class="switch-control" title="Sync scrolling between both tables (leave unchecked for independent scrolling)">
+            <input type="checkbox" id="syncScrollCheckbox">
+            <span class="switch-slider"></span>
+            <span class="switch-label">Sync Scroll</span>
+          </label>
+
+          <!-- Infinite Auto-load Switch -->
+          <label class="switch-control" title="Automatically load next 100 rows when scrolling near bottom">
+            <input type="checkbox" id="autoLoadScrollCheckbox" checked>
+            <span class="switch-slider"></span>
+            <span class="switch-label">Auto-load</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- No Differences / All Match Alert -->
+      <div id="noDiffsCard" class="card empty-card" style="display: none;">
+        <div class="empty-icon-ring">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <h3 class="empty-title">Files are Identical</h3>
+        <p class="empty-desc">No differences were found under the selected comparison settings and column rules.</p>
+      </div>
+
+      <!-- Synchronized / Split Side-by-Side Tables -->
+      <div id="tablesWrapper" class="diff-viewer-wrapper">
+        <!-- Original Table Pane -->
+        <div class="diff-table-pane" id="paneOriginal">
+          <div class="table-pane-header">
+            <span class="pane-badge badge-orig">Original</span>
+            <span class="pane-file-title" id="sumOrigTag">Original File</span>
+          </div>
+          <div class="pane-scroll-viewport" id="scrollAreaOrig">
+            <table class="data-table" id="tableOriginal">
+              <thead id="theadOriginal"></thead>
+              <tbody id="tbodyOriginal"></tbody>
+            </table>
+            <div id="infiniteSentinelOrig" class="sentinel"></div>
+          </div>
+        </div>
+
+        <!-- Resizable Splitter Divider -->
+        <div class="diff-splitter-divider" id="diffSplitter" title="Drag to resize panes">
+          <div class="splitter-handle"></div>
+        </div>
+
+        <!-- Modified Table Pane -->
+        <div class="diff-table-pane" id="paneModified">
+          <div class="table-pane-header">
+            <span class="pane-badge badge-mod">Modified</span>
+            <span class="pane-file-title" id="sumModTag">Modified File</span>
+          </div>
+          <div class="pane-scroll-viewport" id="scrollAreaMod">
+            <table class="data-table" id="tableModified">
+              <thead id="theadModified"></thead>
+              <tbody id="tbodyModified"></tbody>
+            </table>
+            <div id="infiniteSentinelMod" class="sentinel"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch Loading Bar (100 by 100) -->
+      <div id="paginationBar" class="batch-loader-card">
+        <div class="batch-status-group">
+          <div class="batch-info-text">
+            <span>Showing <strong id="displayedCount">0</strong> of <strong id="totalDiffCount">0</strong> differing rows</span>
+            <span id="batchProgressLabel" class="batch-tag">Batch 1</span>
+          </div>
+          <div class="batch-progress-track">
+            <div id="batchProgressBar" class="batch-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="batch-actions-group">
+          <button id="showMoreBtn" class="btn btn-secondary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>
+            <span>Load Next 100 Rows</span>
+          </button>
+          <button id="loadAllBtn" class="btn btn-outline btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>Load All Remaining (Batch-by-Batch)</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <span>CSV Diff &bull; High-Performance Go Comparison Engine &bull; Pure Offline &amp; Unicode-Safe</span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

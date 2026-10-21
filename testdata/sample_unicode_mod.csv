@@ -1,0 +1,6 @@
+id,language,greeting,emoji,notes
+1,Burmese,မင်္ဂလာပါ လူကြီးမင်းတို့,👨‍👩‍👧‍👧,"Unicode 13.0 test, Southeast Asian updated"
+2,Japanese,こんばんは,🌺,"Multibyte CJK script updated"
+3,French,Café crème,☕,"Combining acute accent é"
+4,Spanish,¿Cómo estás? Señora,🌯,"Inverted question mark and ñ"
+5,Flag,Canada,🇨🇦,"Regional indicator emoji sequence"
