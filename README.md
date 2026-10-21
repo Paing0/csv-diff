@@ -141,6 +141,33 @@ csv-diff/
 go run ./cmd/csv-diff
 ```
 
+### Global Installation (Run `csv-diff` from anywhere)
+
+#### On Windows (PowerShell)
+You can run the automated installer:
+```powershell
+powershell -File scripts/install.ps1
+```
+Or use the standard Go installer:
+```powershell
+go install ./cmd/csv-diff
+```
+This places `csv-diff.exe` into your `%USERPROFILE%\go\bin` directory (and adds it to your user `PATH`). You can then launch `csv-diff` directly from any command prompt or PowerShell window:
+```powershell
+csv-diff
+```
+
+#### On macOS / Linux
+Run the installer script:
+```bash
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
+Or via Go:
+```bash
+go install ./cmd/csv-diff
+```
+
 ### Command-Line Options
 ```bash
 ./csv-diff [options]

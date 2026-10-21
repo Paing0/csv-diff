@@ -27,7 +27,7 @@
     isBatchLoadingAll: false,
     cancelBatchLoad: false,
     autoLoadOnScroll: true,
-    syncScroll: false, // Independent scrolling by default
+    syncScroll: true, // Synced scrolling by default
     theme: localStorage.getItem('csvdiff_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   };
 
@@ -110,7 +110,6 @@
     tablesWrapper: document.getElementById('tablesWrapper'),
     paneOriginal: document.getElementById('paneOriginal'),
     paneModified: document.getElementById('paneModified'),
-    diffSplitter: document.getElementById('diffSplitter'),
     scrollAreaOrig: document.getElementById('scrollAreaOrig'),
     scrollAreaMod: document.getElementById('scrollAreaMod'),
     theadOriginal: document.getElementById('theadOriginal'),
@@ -1079,59 +1078,6 @@
     el.loadingOverlay.style.display = 'none';
   }
 
-  // Resizable Splitter
-  function setupSplitter() {
-    if (!el.diffSplitter || !el.tablesWrapper || !el.paneOriginal || !el.paneModified) return;
-
-    let isDragging = false;
-
-    const onMouseDown = (e) => {
-      e.preventDefault();
-      isDragging = true;
-      el.diffSplitter.classList.add('dragging');
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-    };
-
-    const onMouseMove = (e) => {
-      if (!isDragging) return;
-      const rect = el.tablesWrapper.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const totalWidth = rect.width;
-
-      // Restrict splitter between 20% and 80%
-      const minW = Math.max(220, totalWidth * 0.2);
-      const maxW = Math.min(totalWidth - 220, totalWidth * 0.8);
-      const clampedX = Math.min(Math.max(x, minW), maxW);
-
-      const leftPercent = (clampedX / totalWidth) * 100;
-      const rightPercent = 100 - leftPercent;
-
-      el.paneOriginal.style.flex = `0 0 ${leftPercent}%`;
-      el.paneModified.style.flex = `0 0 ${rightPercent}%`;
-    };
-
-    const onMouseUp = () => {
-      if (!isDragging) return;
-      isDragging = false;
-      el.diffSplitter.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-
-    el.diffSplitter.addEventListener('mousedown', onMouseDown);
-
-    // Double-click splitter to reset 50-50
-    el.diffSplitter.addEventListener('dblclick', () => {
-      el.paneOriginal.style.flex = '1 1 50%';
-      el.paneModified.style.flex = '1 1 50%';
-    });
-  }
-
   // App Initialization
   function init() {
     applyTheme(state.theme);
@@ -1141,7 +1087,6 @@
     setupConfigListeners();
     setupResultsListeners();
     setupSynchronizedScrolling();
-    setupSplitter();
   }
 
   if (document.readyState === 'loading') {
