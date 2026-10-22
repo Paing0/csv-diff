@@ -36,6 +36,7 @@
   // DOM Elements
   const el = {
     // Header & Theme
+    brandHomeBtn: document.getElementById('brandHomeBtn'),
     themeToggleBtn: document.getElementById('themeToggleBtn'),
     themeIconSun: document.getElementById('themeIconSun'),
     themeIconMoon: document.getElementById('themeIconMoon'),
@@ -1274,6 +1275,15 @@
 
     // New Comparison
     el.newComparisonBtn.addEventListener('click', resetToUpload);
+    if (el.brandHomeBtn) {
+      el.brandHomeBtn.addEventListener('click', resetToUpload);
+      el.brandHomeBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          resetToUpload();
+        }
+      });
+    }
   }
 
   function resetToUpload() {

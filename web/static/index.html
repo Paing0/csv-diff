@@ -15,7 +15,7 @@
   <!-- Top Navigation Bar -->
   <header class="app-header">
     <div class="header-container">
-      <div class="brand">
+      <div class="brand" id="brandHomeBtn" role="button" tabindex="0" title="Go to home / New comparison">
         <div class="brand-logo">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="18" r="3"></circle>
@@ -268,60 +268,46 @@
 
     <!-- Step 4: Results Section -->
     <section id="resultsSection" class="section results-container" style="display: none;">
-      <!-- Metrics Overview -->
-      <div class="metrics-grid">
-        <div class="metric-card metric-primary">
-          <div class="metric-header">
-            <span class="metric-title">Differing Rows</span>
-            <span class="metric-icon">⚡</span>
-          </div>
-          <div class="metric-value" id="statTotalDiffs">0</div>
-          <div class="metric-footer">Total records with differences</div>
+      <!-- Compact Stats Summary Bar -->
+      <div class="stats-summary-bar">
+        <div class="stats-summary-lead">
+          <span class="stats-diff-badge" title="Differing records">
+            <span class="stats-diff-icon">⚡</span>
+            <strong id="statTotalDiffs">0</strong>
+            <span class="stats-lead-label">differences</span>
+          </span>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Modified</span>
-            <span class="status-indicator mod"></span>
+        <div class="stats-summary-items">
+          <div class="stat-pill stat-pill-mod" title="Paired rows with changed values">
+            <span class="stat-dot mod"></span>
+            <span class="stat-name">Modified:</span>
+            <strong id="statModified" class="stat-num text-rose">0</strong>
           </div>
-          <div class="metric-value text-rose" id="statModified">0</div>
-          <div class="metric-footer">Paired rows with changed values</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Added</span>
-            <span class="status-indicator add"></span>
+          <div class="stat-pill stat-pill-add" title="New rows in modified file">
+            <span class="stat-dot add"></span>
+            <span class="stat-name">Added:</span>
+            <strong id="statAdded" class="stat-num text-emerald">0</strong>
           </div>
-          <div class="metric-value text-emerald" id="statAdded">0</div>
-          <div class="metric-footer">New rows in modified file</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Removed</span>
-            <span class="status-indicator rem"></span>
+          <div class="stat-pill stat-pill-rem" title="Deleted from original file">
+            <span class="stat-dot rem"></span>
+            <span class="stat-name">Removed:</span>
+            <strong id="statRemoved" class="stat-num text-rose-dark">0</strong>
           </div>
-          <div class="metric-value text-rose-dark" id="statRemoved">0</div>
-          <div class="metric-footer">Deleted from original file</div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Changed Cells</span>
-            <span class="metric-icon">📝</span>
-          </div>
-          <div class="metric-value" id="statChangedCells">0</div>
-          <div class="metric-footer">Individual modified cells</div>
-        </div>
+          <div class="stat-divider"></div>
 
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Unchanged</span>
-            <span class="metric-icon">✓</span>
+          <div class="stat-pill stat-pill-cells" title="Total individual modified cells">
+            <span class="stat-name">Cells changed:</span>
+            <strong id="statChangedCells" class="stat-num">0</strong>
           </div>
-          <div class="metric-value text-muted" id="statUnchanged">0</div>
-          <div class="metric-footer">Identical rows (hidden)</div>
+
+          <div class="stat-pill stat-pill-unchanged" title="Identical rows (hidden)">
+            <span class="stat-name">Unchanged:</span>
+            <strong id="statUnchanged" class="stat-num text-muted">0</strong>
+          </div>
         </div>
       </div>
 
