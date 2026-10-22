@@ -239,3 +239,29 @@ func TestCancelAndHealthEndpoints(t *testing.T) {
 		t.Errorf("cancel returned status %d", cRec.Code)
 	}
 }
+
+func TestUploadUnequalHeaders(t *testing.T) {
+	api := createTestAPI(10)
+
+	// Test case 1: Count mismatch
+	req1, _ := createMultipartRequest(t, "id,name\n1,Alice\n", "id,name,age\n1,Alice,30\n", true)
+	rec1 := httptest.NewRecorder()
+	api.HandleUpload(rec1, req1)
+	if rec1.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for column count mismatch, got %d", rec1.Code)
+	}
+	if !strings.Contains(rec1.Body.String(), "equal header column names") {
+		t.Errorf("expected error message to mention equal header column names, got %s", rec1.Body.String())
+	}
+
+	// Test case 2: Name mismatch
+	req2, _ := createMultipartRequest(t, "id,name\n1,Alice\n", "id,title\n1,Alice\n", true)
+	rec2 := httptest.NewRecorder()
+	api.HandleUpload(rec2, req2)
+	if rec2.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for column name mismatch, got %d", rec2.Code)
+	}
+	if !strings.Contains(rec2.Body.String(), "equal header column names") {
+		t.Errorf("expected error message to mention equal header column names, got %s", rec2.Body.String())
+	}
+}

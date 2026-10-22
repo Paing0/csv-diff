@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"csv-diff/internal/csvparser"
 	"csv-diff/internal/model"
@@ -58,6 +59,19 @@ func isColumnEligible(colName string, isKey bool, opts model.CompareOptions) boo
 
 // comparePositional compares CSV files by row position.
 func (e *Engine) comparePositional(ctx context.Context, orig, mod *csvparser.ParsedCSV, opts model.CompareOptions) (*model.CompareSummary, []model.RowDiff, error) {
+	// Validate that both files have equal header column names
+	if len(orig.Header) != len(mod.Header) {
+		return nil, nil, fmt.Errorf("header column count mismatch: Original has %d columns (%s), but Modified has %d columns (%s). Both files must have equal header column names",
+			len(orig.Header), strings.Join(orig.Header, ", "),
+			len(mod.Header), strings.Join(mod.Header, ", "))
+	}
+	for i := range orig.Header {
+		if orig.Header[i] != mod.Header[i] {
+			return nil, nil, fmt.Errorf("header column mismatch at position %d: Original has %q but Modified has %q. Both files must have equal header column names",
+				i+1, orig.Header[i], mod.Header[i])
+		}
+	}
+
 	// Determine columns for display and comparison
 	unifiedCols := buildUnifiedColumnsPositional(orig, mod)
 	if len(unifiedCols) == 0 {
@@ -145,6 +159,43 @@ func (e *Engine) comparePositional(ctx context.Context, orig, mod *csvparser.Par
 
 // comparePrimaryKey compares CSV files using a selected primary key column.
 func (e *Engine) comparePrimaryKey(ctx context.Context, orig, mod *csvparser.ParsedCSV, opts model.CompareOptions) (*model.CompareSummary, []model.RowDiff, error) {
+	// Validate that both files have equal header column names
+	if len(orig.Header) != len(mod.Header) {
+		return nil, nil, fmt.Errorf("header column count mismatch: Original has %d columns (%s), but Modified has %d columns (%s). Both files must have equal header column names",
+			len(orig.Header), strings.Join(orig.Header, ", "),
+			len(mod.Header), strings.Join(mod.Header, ", "))
+	}
+	origSet := make(map[string]bool, len(orig.Header))
+	for _, h := range orig.Header {
+		origSet[h] = true
+	}
+	modSet := make(map[string]bool, len(mod.Header))
+	for _, h := range mod.Header {
+		modSet[h] = true
+	}
+	var missingInMod []string
+	for _, h := range orig.Header {
+		if !modSet[h] {
+			missingInMod = append(missingInMod, h)
+		}
+	}
+	var missingInOrig []string
+	for _, h := range mod.Header {
+		if !origSet[h] {
+			missingInOrig = append(missingInOrig, h)
+		}
+	}
+	if len(missingInMod) > 0 || len(missingInOrig) > 0 {
+		var details []string
+		if len(missingInMod) > 0 {
+			details = append(details, fmt.Sprintf("columns in Original missing from Modified: [%s]", strings.Join(missingInMod, ", ")))
+		}
+		if len(missingInOrig) > 0 {
+			details = append(details, fmt.Sprintf("columns in Modified missing from Original: [%s]", strings.Join(missingInOrig, ", ")))
+		}
+		return nil, nil, fmt.Errorf("header column mismatch: Both files must have equal header column names. %s", strings.Join(details, "; "))
+	}
+
 	if opts.PrimaryKeyCol == "" {
 		return nil, nil, fmt.Errorf("primary key column must be specified")
 	}

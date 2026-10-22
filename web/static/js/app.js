@@ -28,6 +28,8 @@
     cancelBatchLoad: false,
     autoLoadOnScroll: true,
     syncScroll: true, // Synced scrolling by default
+    hiddenColumns: new Set(),
+    columnWidths: {},
     theme: localStorage.getItem('csvdiff_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   };
 
@@ -99,6 +101,14 @@
     filterTabs: document.querySelectorAll('.filter-tab'),
     searchDiffsInput: document.getElementById('searchDiffsInput'),
     clearSearchBtn: document.getElementById('clearSearchBtn'),
+    columnsDropdownWrapper: document.getElementById('columnsDropdownWrapper'),
+    columnsVisibilityBtn: document.getElementById('columnsVisibilityBtn'),
+    columnsHiddenBadge: document.getElementById('columnsHiddenBadge'),
+    columnsVisibilityMenu: document.getElementById('columnsVisibilityMenu'),
+    resetColumnsVisibilityBtn: document.getElementById('resetColumnsVisibilityBtn'),
+    columnsVisibilitySearch: document.getElementById('columnsVisibilitySearch'),
+    columnsVisibilityList: document.getElementById('columnsVisibilityList'),
+    dynamicTableStyles: document.getElementById('dynamicTableStyles'),
     prevDiffBtn: document.getElementById('prevDiffBtn'),
     nextDiffBtn: document.getElementById('nextDiffBtn'),
     diffPositionIndicator: document.getElementById('diffPositionIndicator'),
@@ -124,7 +134,6 @@
     displayedCount: document.getElementById('displayedCount'),
     totalDiffCount: document.getElementById('totalDiffCount'),
     batchProgressLabel: document.getElementById('batchProgressLabel'),
-    batchProgressBar: document.getElementById('batchProgressBar'),
     showMoreBtn: document.getElementById('showMoreBtn'),
     loadAllBtn: document.getElementById('loadAllBtn'),
   };
@@ -484,6 +493,12 @@
     el.clearSearchBtn.style.display = 'none';
     el.filterTabs.forEach((t) => t.classList.toggle('active', t.dataset.filter === 'all'));
 
+    state.hiddenColumns.clear();
+    state.columnWidths = {};
+    updateDynamicTableStyles();
+    updateColumnsBtnBadge();
+    initColumnsVisibilityUI(s.columns);
+
     renderTableHeaders(s.columns);
 
     if (s.total_differing_rows === 0) {
@@ -552,6 +567,147 @@
     }
   }
 
+  // Column Visibility Popover Management
+  function initColumnsVisibilityUI(columns) {
+    if (!el.columnsVisibilityList) return;
+    el.columnsVisibilityList.replaceChildren();
+
+    columns.forEach((col, idx) => {
+      const item = document.createElement('label');
+      item.className = 'dropdown-col-item';
+      item.dataset.colName = col.toLowerCase();
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = col;
+      checkbox.checked = !state.hiddenColumns.has(col);
+      checkbox.dataset.colIdx = idx;
+      checkbox.dataset.colName = col;
+
+      checkbox.addEventListener('change', () => {
+        const visibleCount = state.columns.length - state.hiddenColumns.size;
+        if (!checkbox.checked && visibleCount <= 1) {
+          // Keep at least one column visible
+          checkbox.checked = true;
+          return;
+        }
+
+        if (checkbox.checked) {
+          state.hiddenColumns.delete(col);
+        } else {
+          state.hiddenColumns.add(col);
+        }
+
+        updateDynamicTableStyles();
+        updatePlaceholderColspans();
+        updateColumnsBtnBadge();
+        syncRowHeights(state.displayedRows, false);
+      });
+
+      const span = document.createElement('span');
+      span.textContent = col;
+
+      item.appendChild(checkbox);
+      item.appendChild(span);
+      el.columnsVisibilityList.appendChild(item);
+    });
+
+    if (el.columnsVisibilitySearch) {
+      el.columnsVisibilitySearch.value = '';
+    }
+  }
+
+  function updateColumnsBtnBadge() {
+    if (!el.columnsHiddenBadge) return;
+    const count = state.hiddenColumns.size;
+    if (count > 0) {
+      el.columnsHiddenBadge.textContent = `${state.columns.length - count}/${state.columns.length}`;
+      el.columnsHiddenBadge.style.display = 'inline-flex';
+    } else {
+      el.columnsHiddenBadge.style.display = 'none';
+    }
+  }
+
+  function updatePlaceholderColspans() {
+    const visibleCount = Math.max(1, state.columns.length - state.hiddenColumns.size);
+    const placeholders = document.querySelectorAll('.cell-empty-placeholder');
+    placeholders.forEach((td) => {
+      td.colSpan = visibleCount;
+    });
+  }
+
+  function updateDynamicTableStyles() {
+    if (!el.dynamicTableStyles) return;
+    const rules = [];
+
+    // Hidden columns
+    state.hiddenColumns.forEach((colName) => {
+      const idx = state.columns.indexOf(colName);
+      if (idx !== -1) {
+        rules.push(`#tableOriginal .col-idx-${idx}, #tableModified .col-idx-${idx} { display: none !important; }`);
+      }
+    });
+
+    // Custom resized column widths
+    Object.keys(state.columnWidths).forEach((key) => {
+      const idx = parseInt(key, 10);
+      const width = state.columnWidths[key];
+      if (!isNaN(idx) && width > 0) {
+        rules.push(`#tableOriginal .col-idx-${idx}, #tableModified .col-idx-${idx} { width: ${width}px !important; min-width: ${width}px !important; max-width: ${width}px !important; }`);
+      }
+    });
+
+    el.dynamicTableStyles.textContent = rules.join('\n');
+  }
+
+  // Column Resizing via Drag Handles
+  function initResizeDrag(e, colIdx) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const handle = e.target;
+    if (handle.classList && handle.classList.add) {
+      handle.classList.add('resizing');
+    }
+    if (document.body && document.body.classList) {
+      document.body.classList.add('resizing-columns');
+    }
+
+    const th = handle.closest ? handle.closest('th') : null;
+    const startX = e.clientX;
+    const startWidth = (th && th.getBoundingClientRect) ? th.getBoundingClientRect().width : (state.columnWidths[colIdx] || 180);
+
+    function onMouseMove(ev) {
+      const deltaX = ev.clientX - startX;
+      const newWidth = Math.max(60, Math.min(800, Math.round(startWidth + deltaX)));
+      state.columnWidths[colIdx] = newWidth;
+      updateDynamicTableStyles();
+    }
+
+    function onMouseUp() {
+      if (handle.classList && handle.classList.remove) {
+        handle.classList.remove('resizing');
+      }
+      if (document.body && document.body.classList) {
+        document.body.classList.remove('resizing-columns');
+      }
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      syncRowHeights(state.displayedRows, false);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function handleResizeDblClick(e, colIdx) {
+    e.preventDefault();
+    e.stopPropagation();
+    delete state.columnWidths[colIdx];
+    updateDynamicTableStyles();
+    syncRowHeights(state.displayedRows, false);
+  }
+
   // Render Table Headers
   function renderTableHeaders(columns) {
     el.theadOriginal.replaceChildren();
@@ -569,13 +725,49 @@
     thRowM.textContent = '#';
     trM.appendChild(thRowM);
 
-    columns.forEach((col) => {
+    columns.forEach((col, idx) => {
+      // Original Table Header
       const th1 = document.createElement('th');
-      th1.textContent = col;
+      th1.className = `col-idx-${idx}`;
+      th1.dataset.colIdx = idx;
+      th1.dataset.colName = col;
+      th1.title = `${col} (Drag edge to resize, double-click to reset)`;
+
+      const span1 = document.createElement('span');
+      span1.className = 'th-content';
+      span1.textContent = col;
+      th1.appendChild(span1);
+
+      const resize1 = document.createElement('div');
+      resize1.className = 'col-resize-handle';
+      resize1.dataset.colIdx = idx;
+      resize1.title = 'Drag border to resize, double-click to reset';
+      resize1.addEventListener('mousedown', (e) => initResizeDrag(e, idx));
+      resize1.addEventListener('dblclick', (e) => handleResizeDblClick(e, idx));
+      th1.appendChild(resize1);
+
       trO.appendChild(th1);
 
+      // Modified Table Header
       const th2 = document.createElement('th');
-      th2.textContent = col;
+      th2.className = `col-idx-${idx}`;
+      th2.dataset.colIdx = idx;
+      th2.dataset.colName = col;
+      th2.title = `${col} (Drag edge to resize, double-click to reset)`;
+
+      const span2 = document.createElement('span');
+      span2.className = 'th-content';
+      span2.textContent = col;
+      th2.appendChild(span2);
+
+      const resize2 = document.createElement('div');
+      resize2.className = 'col-resize-handle';
+      resize2.dataset.colIdx = idx;
+      resize2.title = 'Drag border to resize, double-click to reset';
+      resize2.addEventListener('mousedown', (e) => initResizeDrag(e, idx));
+      resize2.addEventListener('dblclick', (e) => handleResizeDblClick(e, idx));
+      th2.appendChild(resize2);
+
       trM.appendChild(th2);
     });
 
@@ -592,6 +784,7 @@
 
     const fragOrig = document.createDocumentFragment();
     const fragMod = document.createDocumentFragment();
+    const visibleCount = Math.max(1, state.columns.length - state.hiddenColumns.size);
 
     rows.forEach((rowDiff, idx) => {
       const rowIndex = append ? state.displayedRows.length - rows.length + idx : idx;
@@ -637,13 +830,16 @@
       // Render cells
       if (rowDiff.status === 'added') {
         const tdPlaceholder = document.createElement('td');
-        tdPlaceholder.colSpan = state.columns.length;
+        tdPlaceholder.colSpan = visibleCount;
         tdPlaceholder.className = 'cell-empty-placeholder';
         tdPlaceholder.textContent = '[Record added in modified version]';
         trOrig.appendChild(tdPlaceholder);
 
         rowDiff.cells.forEach((cell, cellIdx) => {
           const td = document.createElement('td');
+          td.className = `col-idx-${cellIdx}`;
+          td.dataset.colIdx = cellIdx;
+          td.dataset.colName = cell.col_name;
           if (cellIdx === 0) {
             const pill = document.createElement('span');
             pill.className = 'cell-pill pill-add';
@@ -656,6 +852,9 @@
       } else if (rowDiff.status === 'removed') {
         rowDiff.cells.forEach((cell, cellIdx) => {
           const td = document.createElement('td');
+          td.className = `col-idx-${cellIdx}`;
+          td.dataset.colIdx = cellIdx;
+          td.dataset.colName = cell.col_name;
           if (cellIdx === 0) {
             const pill = document.createElement('span');
             pill.className = 'cell-pill pill-rem';
@@ -667,7 +866,7 @@
         });
 
         const tdPlaceholder = document.createElement('td');
-        tdPlaceholder.colSpan = state.columns.length;
+        tdPlaceholder.colSpan = visibleCount;
         tdPlaceholder.className = 'cell-empty-placeholder';
         tdPlaceholder.textContent = '[Record removed from original version]';
         trMod.appendChild(tdPlaceholder);
@@ -675,6 +874,13 @@
         rowDiff.cells.forEach((cell, cellIdx) => {
           const tdOrig = document.createElement('td');
           const tdMod = document.createElement('td');
+          tdOrig.className = `col-idx-${cellIdx}`;
+          tdOrig.dataset.colIdx = cellIdx;
+          tdOrig.dataset.colName = cell.col_name;
+
+          tdMod.className = `col-idx-${cellIdx}`;
+          tdMod.dataset.colIdx = cellIdx;
+          tdMod.dataset.colName = cell.col_name;
 
           if (cell.status === 'modified') {
             tdOrig.classList.add('cell-mod-diff');
@@ -799,9 +1005,6 @@
 
     const currentBatchNum = Math.ceil(displayed / BATCH_SIZE) || 1;
     const totalBatches = Math.ceil(total / BATCH_SIZE) || 1;
-
-    const percent = total > 0 ? Math.min(100, Math.round((displayed / total) * 100)) : 100;
-    el.batchProgressBar.style.width = `${percent}%`;
 
     if (displayed >= total || !hasMore) {
       el.batchProgressLabel.textContent = `All ${total.toLocaleString()} rows loaded (${totalBatches} batches)`;
@@ -1024,6 +1227,51 @@
     el.showMoreBtn.addEventListener('click', () => loadNextBatch(true));
     el.loadAllBtn.addEventListener('click', handleLoadAllBatches);
 
+    // Columns Visibility Popover
+    if (el.columnsVisibilityBtn) {
+      el.columnsVisibilityBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = el.columnsVisibilityMenu.style.display === 'flex';
+        el.columnsVisibilityMenu.style.display = isOpen ? 'none' : 'flex';
+        el.columnsDropdownWrapper.classList.toggle('open', !isOpen);
+        el.columnsVisibilityBtn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+      });
+    }
+
+    if (el.resetColumnsVisibilityBtn) {
+      el.resetColumnsVisibilityBtn.addEventListener('click', () => {
+        state.hiddenColumns.clear();
+        if (el.columnsVisibilityList) {
+          el.columnsVisibilityList.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.checked = true;
+          });
+        }
+        updateDynamicTableStyles();
+        updatePlaceholderColspans();
+        updateColumnsBtnBadge();
+        syncRowHeights(state.displayedRows, false);
+      });
+    }
+
+    if (el.columnsVisibilitySearch) {
+      el.columnsVisibilitySearch.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        const items = el.columnsVisibilityList.querySelectorAll('.dropdown-col-item');
+        items.forEach((item) => {
+          item.style.display = item.dataset.colName.includes(q) ? 'flex' : 'none';
+        });
+      });
+    }
+
+    // Close columns dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (el.columnsDropdownWrapper && !el.columnsDropdownWrapper.contains(e.target)) {
+        if (el.columnsVisibilityMenu) el.columnsVisibilityMenu.style.display = 'none';
+        el.columnsDropdownWrapper.classList.remove('open');
+        if (el.columnsVisibilityBtn) el.columnsVisibilityBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
     // New Comparison
     el.newComparisonBtn.addEventListener('click', resetToUpload);
   }
@@ -1036,6 +1284,10 @@
     state.summary = null;
     state.displayedRows = [];
     state.activeDiffIndex = -1;
+    state.hiddenColumns.clear();
+    state.columnWidths = {};
+    if (el.dynamicTableStyles) el.dynamicTableStyles.textContent = '';
+    if (el.columnsHiddenBadge) el.columnsHiddenBadge.style.display = 'none';
 
     el.originalDropzone.classList.remove('has-file');
     el.originalFileInfo.style.display = 'none';

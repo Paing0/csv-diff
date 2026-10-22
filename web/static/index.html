@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSV Diff - Modern CSV Comparison</title>
   <link rel="stylesheet" href="css/style.css">
+  <style id="dynamicTableStyles"></style>
   <!-- Preconnect and Google Fonts JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -341,6 +342,30 @@
             <input type="text" id="searchDiffsInput" class="form-input form-input-sm search-input" placeholder="Search cell values...">
             <button id="clearSearchBtn" class="clear-btn" style="display: none;">✕</button>
           </div>
+
+          <!-- Column Visibility Dropdown -->
+          <div class="dropdown-wrapper" id="columnsDropdownWrapper">
+            <button type="button" id="columnsVisibilityBtn" class="btn btn-outline btn-sm dropdown-trigger" aria-haspopup="true" aria-expanded="false" title="Customize visible columns">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                <path d="M9 3v18"></path>
+                <path d="M15 3v18"></path>
+              </svg>
+              <span>Columns</span>
+              <span id="columnsHiddenBadge" class="badge-mini" style="display: none;">0</span>
+              <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+            <div id="columnsVisibilityMenu" class="dropdown-popover" style="display: none;">
+              <div class="dropdown-header">
+                <span class="dropdown-title">Columns</span>
+                <button type="button" id="resetColumnsVisibilityBtn" class="btn-link-xs">Show all</button>
+              </div>
+              <div class="dropdown-search">
+                <input type="text" id="columnsVisibilitySearch" class="form-input form-input-xs" placeholder="Search columns...">
+              </div>
+              <div id="columnsVisibilityList" class="dropdown-checkbox-list"></div>
+            </div>
+          </div>
         </div>
 
         <div class="toolbar-right">
@@ -421,9 +446,6 @@
           <div class="batch-info-text">
             <span>Showing <strong id="displayedCount">0</strong> of <strong id="totalDiffCount">0</strong> differing rows</span>
             <span id="batchProgressLabel" class="batch-tag">Batch 1</span>
-          </div>
-          <div class="batch-progress-track">
-            <div id="batchProgressBar" class="batch-progress-fill" style="width: 0%;"></div>
           </div>
         </div>
 

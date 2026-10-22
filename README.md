@@ -48,6 +48,11 @@ Comparing CSV files reliably is notoriously error-prone when naive line diffing 
 - **Two Comparison Modes**:
   - **Positional Comparison (Default)**: Compares records by their row index in the CSV file. Ideal when row order is meaningful.
   - **Primary-Key Comparison**: Matches records by a unique identifier column, accommodating row reordering, differing column arrangements, and missing rows.
+- **Adjustable & Hidable Table Columns**:
+  - Resizable column widths: Drag any column header border in either table to dynamically resize both side-by-side tables synchronously in real time; double-click the handle to reset to default.
+  - Column visibility toggle: Use the **Columns** dropdown popover in the toolbar with search filtering to show or hide specific columns dynamically without re-running the comparison.
+- **Strict Header Validation**:
+  - Both CSV files are validated to ensure they have equal header column names. Mismatches in column count or names immediately display clear, actionable errors on upload.
 - **Selective Column Inclusion & Exclusion**:
   - `Include Selected`: Compares only explicitly selected columns.
   - `Exclude Selected`: Compares all columns except those excluded.

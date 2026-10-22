@@ -383,7 +383,7 @@ func TestDiffMultilineAndQuotes(t *testing.T) {
 }
 
 func TestPrimaryKeyMissingColumnsAcrossFiles(t *testing.T) {
-	// Original has [id, name], Modified has [id, name, age]
+	// Original has [id, name], Modified has [id, name, age] -> Must return error
 	origCSV := "id,name\n1,Alice\n2,Bob\n"
 	modCSV := "id,name,age\n1,Alice,30\n2,Bob,25\n"
 	orig := parseHelper(t, origCSV)
@@ -395,20 +395,29 @@ func TestPrimaryKeyMissingColumnsAcrossFiles(t *testing.T) {
 		PrimaryKeyCol: "id",
 	}
 
-	summary, diffs, err := engine.Compare(context.Background(), orig, mod, opts)
-	if err != nil {
-		t.Fatalf("missing columns error: %v", err)
+	_, _, err := engine.Compare(context.Background(), orig, mod, opts)
+	if err == nil {
+		t.Fatalf("expected error when files have unequal header columns, got nil")
 	}
+	if !strings.Contains(err.Error(), "equal header column names") {
+		t.Errorf("expected error message to mention equal header column names, got: %v", err)
+	}
+}
 
-	// In row 1: age is missing in orig, present in mod -> cell modified
-	if summary.TotalDifferingRows != 2 {
-		t.Errorf("expected 2 differing rows due to added column, got %d", summary.TotalDifferingRows)
+func TestPositionalHeaderMismatchError(t *testing.T) {
+	origCSV := "id,name\n1,Alice\n"
+	modCSV := "id,title\n1,Alice\n"
+	orig := parseHelper(t, origCSV)
+	mod := parseHelper(t, modCSV)
+
+	engine := NewEngine()
+	opts := model.CompareOptions{Mode: model.ModePositional}
+	_, _, err := engine.Compare(context.Background(), orig, mod, opts)
+	if err == nil {
+		t.Fatalf("expected error when positional headers do not match, got nil")
 	}
-	if len(diffs) > 0 {
-		cellAge := diffs[0].Cells[2]
-		if cellAge.ColName != "age" || cellAge.OriginalValue != nil || cellAge.ModifiedValue == nil || *cellAge.ModifiedValue != "30" {
-			t.Errorf("expected cellAge to reflect missing in orig, got %v", cellAge)
-		}
+	if !strings.Contains(err.Error(), "equal header column names") {
+		t.Errorf("expected error message to mention equal header column names, got: %v", err)
 	}
 }
 

@@ -227,3 +227,55 @@ test('Column Filter Logic: Include and Exclude modes correctly filter columns', 
   const excluded = getEligibleColumns('exclude', ['salary', 'age']);
   assert.deepStrictEqual(excluded, ['id', 'name', 'role']);
 });
+
+// Test 6: Column Hiding & Dynamic Style Generation
+test('Column Hiding: Dynamic CSS rules and placeholder colSpan calculation', () => {
+  const columns = ['id', 'first_name', 'last_name', 'email', 'department'];
+  const hiddenColumns = new Set(['email', 'department']);
+  const columnWidths = { 1: 240 }; // first_name resized to 240px
+
+  function generateDynamicStyles(cols, hidden, widths) {
+    const rules = [];
+    hidden.forEach((colName) => {
+      const idx = cols.indexOf(colName);
+      if (idx !== -1) {
+        rules.push(`#tableOriginal .col-idx-${idx}, #tableModified .col-idx-${idx} { display: none !important; }`);
+      }
+    });
+    Object.keys(widths).forEach((key) => {
+      const idx = parseInt(key, 10);
+      const width = widths[key];
+      if (!isNaN(idx) && width > 0) {
+        rules.push(`#tableOriginal .col-idx-${idx}, #tableModified .col-idx-${idx} { width: ${width}px !important; min-width: ${width}px !important; max-width: ${width}px !important; }`);
+      }
+    });
+    return rules;
+  }
+
+  const rules = generateDynamicStyles(columns, hiddenColumns, columnWidths);
+  assert.strictEqual(rules.length, 3);
+  assert.ok(rules.some(r => r.includes('.col-idx-3') && r.includes('display: none !important;')));
+  assert.ok(rules.some(r => r.includes('.col-idx-4') && r.includes('display: none !important;')));
+  assert.ok(rules.some(r => r.includes('.col-idx-1') && r.includes('width: 240px !important;')));
+
+  // Visible count calculation for placeholder cells
+  const visibleCount = Math.max(1, columns.length - hiddenColumns.size);
+  assert.strictEqual(visibleCount, 3);
+});
+
+// Test 7: Column Resizing Bounds
+test('Column Resizing: Clamping to minimum and maximum allowed widths', () => {
+  function clampWidth(startWidth, deltaX) {
+    return Math.max(60, Math.min(800, Math.round(startWidth + deltaX)));
+  }
+
+  // Normal resize
+  assert.strictEqual(clampWidth(180, 50), 230);
+  assert.strictEqual(clampWidth(180, -40), 140);
+
+  // Clamping min width to 60px
+  assert.strictEqual(clampWidth(180, -200), 60);
+
+  // Clamping max width to 800px
+  assert.strictEqual(clampWidth(180, 1000), 800);
+});

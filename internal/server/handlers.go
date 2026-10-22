@@ -103,6 +103,12 @@ func (h *APIHandler) HandleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate that both files have equal header column names
+	if err := validateEqualHeaders(origParsed.Header, modParsed.Header, hasHeader); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+
 	// Build metadata
 	origMeta := model.FileMetadata{
 		FileID:      generateID(),
@@ -169,6 +175,50 @@ func calculateColumnLists(origCols, modCols []string) ([]string, []string) {
 	}
 
 	return common, allCols
+}
+
+func validateEqualHeaders(origHeader, modHeader []string, hasHeader bool) error {
+	if len(origHeader) != len(modHeader) {
+		return fmt.Errorf("header column count mismatch: Original file has %d columns (%s), but Modified file has %d columns (%s). Both files must have equal header column names",
+			len(origHeader), strings.Join(origHeader, ", "),
+			len(modHeader), strings.Join(modHeader, ", "))
+	}
+
+	if hasHeader {
+		origSet := make(map[string]bool, len(origHeader))
+		for _, h := range origHeader {
+			origSet[h] = true
+		}
+		modSet := make(map[string]bool, len(modHeader))
+		for _, h := range modHeader {
+			modSet[h] = true
+		}
+
+		var missingInMod []string
+		for _, h := range origHeader {
+			if !modSet[h] {
+				missingInMod = append(missingInMod, h)
+			}
+		}
+		var missingInOrig []string
+		for _, h := range modHeader {
+			if !origSet[h] {
+				missingInOrig = append(missingInOrig, h)
+			}
+		}
+
+		if len(missingInMod) > 0 || len(missingInOrig) > 0 {
+			var details []string
+			if len(missingInMod) > 0 {
+				details = append(details, fmt.Sprintf("columns in Original missing from Modified: [%s]", strings.Join(missingInMod, ", ")))
+			}
+			if len(missingInOrig) > 0 {
+				details = append(details, fmt.Sprintf("columns in Modified missing from Original: [%s]", strings.Join(missingInOrig, ", ")))
+			}
+			return fmt.Errorf("header column mismatch: The two files must have equal header column names. %s", strings.Join(details, "; "))
+		}
+	}
+	return nil
 }
 
 // HandleCompare executes comparison and returns summary + first page of up to 100 differing rows.
